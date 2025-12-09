@@ -91,7 +91,7 @@ def get_npu_profiler(
     profile_level: str,
     profile_save_path: str,
     analysis: bool,
-    role: Optional[str] = None,
+    stage: Optional[str] = None,
     profile_step: Optional[str] = None,
 ):
     """Generate and return an NPU profiler object.
@@ -107,8 +107,8 @@ def get_npu_profiler(
             The path to save the collected data.
         analysis (bool):
             Whether to enables automatic data parsing.
-        role (str, optional):
-            The role of the current data collection. Defaults to None.
+        stage (str, optional):
+            The stage of the current data collection. Defaults to None.
         profile_step(str, optional):
             The current training step. Defaults to None.
     """
@@ -125,8 +125,8 @@ def get_npu_profiler(
 
     if profile_step:
         profile_save_path = os.path.join(profile_save_path, profile_step)
-    if role:
-        profile_save_path = os.path.join(profile_save_path, role)
+    if stage:
+        profile_save_path = os.path.join(profile_save_path, stage)
 
     experimental_config = torch_npu.profiler._ExperimentalConfig(
         aic_metrics=torch_npu.profiler.AiCMetrics.PipeUtilization,
@@ -178,6 +178,7 @@ class NPUProfiler(DistProfiler):
             return
         self.this_step: bool = False
         self.discrete: bool = tool_config.discrete
+        self.stages: list[str] = tool_config.stages
         self.this_rank: bool = False
         self.profile_npu = None
         self.profile_contents = tool_config.contents
@@ -200,7 +201,7 @@ class NPUProfiler(DistProfiler):
                     profile_level=self.profile_level,
                     profile_save_path=self.profile_save_path,
                     analysis=self.analysis,
-                    role=role,
+                    stage=role,
                     profile_step=profile_step,
                 )
                 self.profile_npu.start()
@@ -214,7 +215,7 @@ class NPUProfiler(DistProfiler):
                 self.profile_npu.stop()
                 NPUProfiler._define_count -= 1
 
-    def annotate(self, message: Optional[str] = None, role: Optional[str] = None, **kwargs_outer) -> Callable:
+    def annotate(self, message: Optional[str] = None, stage: Optional[str] = None, **kwargs_outer) -> Callable:
         """Decorate a Worker member function to profile the current rank in the current training step.
 
         Requires the target function to be a member function of a Worker,
@@ -223,8 +224,8 @@ class NPUProfiler(DistProfiler):
         Args:
             message (str, optional):
                 The message to be displayed in the profiler. Defaults to None.
-            role (str, optional):
-                The role of the current data collection. Defaults to None.
+            stage (str, optional):
+                The stage of the current data collection. Defaults to None.
         """
 
         def decorator(func):
@@ -244,15 +245,16 @@ class NPUProfiler(DistProfiler):
                     if not discrete_mode:
                         mark_range = mark_start_range(message=profile_name)
                     else:
-                        profile_npu = get_npu_profiler(
-                            contents=self.profile_contents,
-                            profile_level=self.profile_level,
-                            profile_save_path=self.profile_save_path,
-                            analysis=self.analysis,
-                            role=role,
-                        )
-                        profile_npu.start()
-                        mark_range = mark_start_range(message=profile_name)
+                        if "all" in self.stages or stage in self.stages:
+                            profile_npu = get_npu_profiler(
+                                contents=self.profile_contents,
+                                profile_level=self.profile_level,
+                                profile_save_path=self.profile_save_path,
+                                analysis=self.analysis,
+                                stage=stage,
+                            )
+                            profile_npu.start()
+                            mark_range = mark_start_range(message=profile_name)
 
                 result = func(*args, **kwargs_inner)
 
@@ -260,9 +262,10 @@ class NPUProfiler(DistProfiler):
                     if not discrete_mode:
                         mark_end_range(mark_range)
                     else:
-                        mark_end_range(mark_range)
-                        profile_npu.step()
-                        profile_npu.stop()
+                        if "all" in self.stages or stage in self.stages:
+                            mark_end_range(mark_range)
+                            profile_npu.step()
+                            profile_npu.stop()
 
                 return result
 

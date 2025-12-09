@@ -57,23 +57,7 @@ profiler:
       discrete: ${oc.select:global_profiler.global_tool_config.nsys.discrete}
 
     # npu config
-    npu:
-
-      # Required when using verl.utils.omega_conf_to_dataclass to instantiate dataclass configs
-      _target_: verl.utils.profiler.config.NPUToolConfig
-
-      # Contents to profile, can be empty
-      # options: npu, cpu, memory, shapes, module, stack
-      contents: []
-
-      # Collection level, optional values: level_none, level0, level1, level2.
-      level: "level1"
-
-      # Whether to automatically parse the data.
-      analysis: True
-
-      # True for each task has its own database, False for all tasks in one training step share one database.
-      discrete: False
+    npu: ${oc.select:global_profiler.global_tool_config.npu}
 
     # torch profiler config
     torch:

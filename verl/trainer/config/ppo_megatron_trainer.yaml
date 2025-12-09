@@ -228,6 +228,29 @@ global_profiler:
       stacks: "all"
       # devices, record_context etc.
       kw_args: {}
+    npu:
+
+      # Required when using verl.utils.omega_conf_to_dataclass to instantiate dataclass configs
+      _target_: verl.utils.profiler.config.NPUToolConfig
+
+      # Contents to profile, can be empty
+      # options: npu, cpu, memory, shapes, module, stack
+      contents: []
+
+      # Collection level, optional values: level_none, level0, level1, level2.
+      level: "level1"
+
+      # Whether to automatically parse the data.
+      analysis: True
+
+      # True for each task has its own database, False for all tasks in one training step share one database.
+      discrete: False
+
+      # Stages to be profiled. Only takes effect in discrete mode.
+      # Optional values: all, actor_compute_log_prob, actor_update, critic_compute_values, critic_update, 
+      #                  ref_compute_log_prob, rollout_generate, reward_compute_rm_score
+      # "all" means all stages will ve profiled.
+      stages: ["all"]
 
 # configs for TransferQueue
 transfer_queue:

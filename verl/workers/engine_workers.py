@@ -277,7 +277,7 @@ class ActorWorker(Worker, DistProfilerExtension):
         self.loss_fn = loss_fn
 
     @register(dispatch_mode=make_nd_compute_dataproto_dispatch_fn(mesh_name="actor"))
-    @DistProfiler.annotate(color="blue", role="actor_compute_log_prob")
+    @DistProfiler.annotate(color="blue", stage="actor_compute_log_prob")
     def compute_log_prob(self, data: DataProto):
         data.meta_info["use_dynamic_bsz"] = self.config.use_dynamic_bsz
         data.meta_info["use_fused_kernels"] = self.config.use_fused_kernels
@@ -313,7 +313,7 @@ class ActorWorker(Worker, DistProfilerExtension):
         return output if self.engine.is_mp_src_rank_with_outputs() else None
 
     @register(dispatch_mode=make_nd_compute_dataproto_dispatch_fn(mesh_name="actor"))
-    @DistProfiler.annotate(color="red", role="actor_update")
+    @DistProfiler.annotate(color="red", stage="actor_update")
     def update_actor(self, data: DataProto):
         data.meta_info["use_dynamic_bsz"] = self.config.use_dynamic_bsz
         data.meta_info["use_fused_kernels"] = self.config.use_fused_kernels
@@ -456,7 +456,7 @@ class CriticWorker(Worker, DistProfilerExtension):
         self.loss_fn = loss_fn
 
     @register(dispatch_mode=make_nd_compute_dataproto_dispatch_fn(mesh_name="critic"))
-    @DistProfiler.annotate(color="blue", role="critic_compute_values")
+    @DistProfiler.annotate(color="blue", stage="critic_compute_values")
     def compute_values(self, data: DataProto):
         data.meta_info["use_dynamic_bsz"] = self.config.use_dynamic_bsz
         if self.config.use_dynamic_bsz:
@@ -484,7 +484,7 @@ class CriticWorker(Worker, DistProfilerExtension):
         return output
 
     @register(dispatch_mode=make_nd_compute_dataproto_dispatch_fn(mesh_name="critic"))
-    @DistProfiler.annotate(color="red", role="critic_update")
+    @DistProfiler.annotate(color="red", stage="critic_update")
     def update_critic(self, data: DataProto):
         data.meta_info["use_dynamic_bsz"] = self.config.use_dynamic_bsz
         if self.config.use_dynamic_bsz:
@@ -622,7 +622,7 @@ class ActorRolloutRefWorker(Worker, DistProfilerExtension):
             self.layered_summon = self.config.rollout.get("layered_summon", False)
 
     @register(dispatch_mode=make_nd_compute_dataproto_dispatch_fn(mesh_name="ref"))
-    @DistProfiler.annotate(color="olive", role="ref_compute_log_prob")
+    @DistProfiler.annotate(color="olive", stage="ref_compute_log_prob")
     def compute_ref_log_prob(self, data: DataProto):
         data.meta_info["calculate_entropy"] = False
         output = self.ref.compute_log_prob(data)
@@ -631,12 +631,12 @@ class ActorRolloutRefWorker(Worker, DistProfilerExtension):
         return output
 
     @register(dispatch_mode=make_nd_compute_dataproto_dispatch_fn(mesh_name="actor"))
-    @DistProfiler.annotate(color="blue", role="actor_compute_log_prob")
+    @DistProfiler.annotate(color="blue", stage="actor_compute_log_prob")
     def compute_log_prob(self, data: DataProto):
         return self.actor.compute_log_prob(data)
 
     @register(dispatch_mode=make_nd_compute_dataproto_dispatch_fn(mesh_name="actor"))
-    @DistProfiler.annotate(color="red", role="actor_update")
+    @DistProfiler.annotate(color="red", stage="actor_update")
     def update_actor(self, data: DataProto):
         return self.actor.update_actor(data)
 
